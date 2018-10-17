@@ -10,12 +10,15 @@ import org.jsoup.select.*;
 
 public class Multithread implements Runnable {
 
-	private static String basePath = "E:/cache/";
+	/**
+	 * 文件存储路径
+	 */
+	private String basePath = "E:/cache/";
 	
 	public String url;
 	
 	public static void main(String[] args) {
-		String[] arr = new String[] {
+		String[] arr = {
 			"http://7y8k.com/?m=vod-type-id-5.html",
 			"http://7y8k.com/?m=vod-type-id-6.html",
 			"http://7y8k.com/?m=vod-type-id-7.html",
@@ -23,6 +26,7 @@ public class Multithread implements Runnable {
 		};
 		
 		for(String url : arr) {
+			// 多线程同时下载
 			Multithread t = new Multithread();
 			t.url = url;
 			new Thread(t).start();
@@ -74,7 +78,7 @@ public class Multithread implements Runnable {
 		}
 	}
 	
-	public static void level2(String url) throws Exception {
+	public void level2(String url) throws Exception {
 		Document doc = Jsoup.connect(url).get();
 		Elements a = doc.select("#vlink_1 ul li a");
 		System.out.println(a.attr("abs:href"));
@@ -84,25 +88,26 @@ public class Multithread implements Runnable {
 		String name = substr(html, "mac_name='", "',mac_from");
 		String source = substr(html, "unescape('", "'); <");
 		
+		int index = name.indexOf("-");
+		if(index != -1 && index < 4)
+			name = name.substring(index + 1);
+			
 		System.out.println(name);
 		System.out.println(URLDecoder.decode(source, "UTF-8"));
 		
 		downVideo(basePath + name, URLDecoder.decode(source, "UTF-8"));
 	}
 	
-	private static String substr(String html, String start, String end) {
+	private String substr(String html, String start, String end) {
 		return html.substring(html.indexOf(start) + 10, html.indexOf(end));
 	}
 
-	public static void downVideo(String filePath, String videoUrl) throws Exception {
-		// 图片url中的前面部分：例如"http://images.csdn.net/"
+	public void downVideo(String filePath, String videoUrl) throws Exception {
 		String beforeUrl = videoUrl.substring(0, videoUrl.lastIndexOf("/") + 1);
-		// 图片url中的后面部分：例如“20150529/PP6A7429_副本1.jpg”
 		String fileName = videoUrl.substring(videoUrl.lastIndexOf("/") + 1);
-		// 编码之后的fileName，空格会变成字符"+"
 		String newFileName = URLEncoder.encode(fileName, "UTF-8");
-		// 把编码之后的fileName中的字符"+"，替换为UTF-8中的空格表示："%20"
 		newFileName = newFileName.replaceAll("\\+", "\\%20");
+		
 		// 编码之后的url
 		videoUrl = beforeUrl + newFileName;
 		
