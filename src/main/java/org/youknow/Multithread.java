@@ -2,6 +2,7 @@ package org.youknow;
 
 import java.io.*;
 import java.net.*;
+import java.sql.*;
 import java.util.*;
 
 import org.jsoup.*;
@@ -85,6 +86,9 @@ public class Multithread implements Runnable {
 	}
 	
 	public void level2(String url) throws Exception {
+		if(check(url))
+			return;
+		
 		Document doc = Jsoup.connect(url).get();
 		Elements a = doc.select("#vlink_1 ul li a");
 		System.out.println("分析地址：" + a.attr("abs:href"));
@@ -102,6 +106,8 @@ public class Multithread implements Runnable {
 		System.out.println("文件路径：" + URLDecoder.decode(source, "UTF-8"));
 		
 		downVideo(basePath + name, URLDecoder.decode(source, "UTF-8"));
+		
+		save(url);
 	}
 	
 	private String substr(String html, String start, String end) {
@@ -118,6 +124,7 @@ public class Multithread implements Runnable {
 		videoUrl = beforeUrl + newFileName;
 		
 		FileOutputStream out = null;
+		File file = null;
 		
 		try {
 			// 创建文件目录
@@ -127,7 +134,7 @@ public class Multithread implements Runnable {
 			}
 			
 			// 创建文件，fileName为编码之前的文件名
-			File file = new File(filePath + fileName);
+			file = new File(filePath + fileName);
 			if(file.exists())
 				return;
 			
@@ -143,6 +150,65 @@ public class Multithread implements Runnable {
 			out.close();
 			
 			file.renameTo(new File(filePath + fileName));
+		} catch (Exception e) {
+			out.close();
+			file.delete();
+			
+			throw e;
+		}
+	}
+	
+	private java.sql.Connection getConn() throws Exception {
+		Class.forName("org.sqlite.JDBC");
+		return DriverManager.getConnection("jdbc:sqlite:cache.db");
+	}
+	
+	private boolean check(String url) {
+		java.sql.Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		
+		try {
+			conn = getConn();
+			ps = conn.prepareStatement("select * from cache where url = ?");
+			ps.setString(1, url);
+			rs = ps.executeQuery();
+			return rs.next();
+		} catch(Exception e) {
+			e.printStackTrace();
+			return true;
+		} finally {
+			close(rs);
+			close(ps);
+			close(conn);
+		}
+	}
+	
+	private void save(String url) {
+		java.sql.Connection conn = null;
+		PreparedStatement ps = null;
+		
+		try {
+			conn = getConn();
+			ps = conn.prepareStatement("insert into cache(url) values(?)");
+			ps.setString(1, url);
+			ps.executeUpdate();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			close(ps);
+			close(conn);
+		}
+	}
+	
+	private void close(Object obj) {
+		if(obj == null)
+			return;
+		
+		try {
+			java.lang.reflect.Method method = obj.getClass().getMethod("close");
+			if (method != null)
+				method.invoke(obj);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
