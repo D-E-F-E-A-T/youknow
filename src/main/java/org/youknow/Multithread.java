@@ -87,24 +87,24 @@ public class Multithread implements Runnable {
 		System.out.println(name);
 		System.out.println(URLDecoder.decode(source, "UTF-8"));
 		
-		downImages(basePath + name, URLDecoder.decode(source, "UTF-8"));
+		downVideo(basePath + name, URLDecoder.decode(source, "UTF-8"));
 	}
 	
 	private static String substr(String html, String start, String end) {
 		return html.substring(html.indexOf(start) + 10, html.indexOf(end));
 	}
 
-	public static void downImages(String filePath, String imgUrl) throws Exception {
+	public static void downVideo(String filePath, String videoUrl) throws Exception {
 		// 图片url中的前面部分：例如"http://images.csdn.net/"
-		String beforeUrl = imgUrl.substring(0, imgUrl.lastIndexOf("/") + 1);
+		String beforeUrl = videoUrl.substring(0, videoUrl.lastIndexOf("/") + 1);
 		// 图片url中的后面部分：例如“20150529/PP6A7429_副本1.jpg”
-		String fileName = imgUrl.substring(imgUrl.lastIndexOf("/") + 1);
+		String fileName = videoUrl.substring(videoUrl.lastIndexOf("/") + 1);
 		// 编码之后的fileName，空格会变成字符"+"
 		String newFileName = URLEncoder.encode(fileName, "UTF-8");
 		// 把编码之后的fileName中的字符"+"，替换为UTF-8中的空格表示："%20"
 		newFileName = newFileName.replaceAll("\\+", "\\%20");
 		// 编码之后的url
-		imgUrl = beforeUrl + newFileName;
+		videoUrl = beforeUrl + newFileName;
 		
 		InputStream is = null;
 		FileOutputStream out = null;
@@ -116,13 +116,17 @@ public class Multithread implements Runnable {
 				files.mkdirs();
 			}
 			// 获取下载地址
-			URL url = new URL(imgUrl);
+			URL url = new URL(videoUrl);
 			// 链接网络地址
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			// 获取链接的输出流
 			is = connection.getInputStream();
 			// 创建文件，fileName为编码之前的文件名
 			File file = new File(filePath + fileName);
+			if(file.exists())
+				return;
+			
+			file = new File(filePath + fileName + ".tmp");
 			if(file.exists())
 				return;
 			
@@ -133,6 +137,8 @@ public class Multithread implements Runnable {
 				out.write(i);
 			}
 			out.close();
+			
+			file.renameTo(new File(filePath + fileName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
