@@ -142,16 +142,23 @@ public class Multithread implements Runnable {
 			if(file.exists())
 				file.delete();
 
-			Response res = Jsoup.connect(videoUrl).ignoreContentType(true).execute();
+			// 使用jsoup下载有一个问题，就是都下载到内存中了，如果内存不够大直接溢出
+			// 解决方案只有两种，单线程大文件or多线程小文件，maxBodySize设置文件大小，超过限制直接截断
+			Response res = Jsoup.connect(videoUrl)
+					.maxBodySize(99999999)
+					.ignoreContentType(true)
+					.execute();
 			
 			// 根据输入流写入文件
 			out = new FileOutputStream(file);
 			out.write(res.bodyAsBytes());
 			out.close();
 			
-			file.renameTo(new File(filePath + fileName));
+			if(file != null)
+				file.renameTo(new File(filePath + fileName));
 		} catch (Exception e) {
-			out.close();
+			if(out != null)
+				out.close();
 			file.delete();
 			
 			throw e;
